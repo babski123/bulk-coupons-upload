@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <title>Yotpo Bulk Coupon Upload</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM="
+    crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+  <div class="container" style="width:600px">
+    <h1 class="text-center mt-3">Coupons Bulk Upload</h1>
+    <p class="text-center text-muted mt-3">
+      The maximum dynamic coupon upload in Yotpo B2B is 10,000 coupons at a time.
+      This tool will allow you to upload a file that contains more than 10,000 coupons.<br>
+      Goodbye manual repetitive upload, this tool will do it for you.
+    </p>
+    <form class="mt-2">
+      <div class="form-group">
+        <label for="app_key" class="my-1">App key</label>
+        <input type="text" class="form-control my-1" id="app_key">
+      </div>
+      <div class="form-group">
+        <label for="secret_key" class="my-1">Secret key</label>
+        <input type="text" class="form-control my-1" id="secret_key">
+      </div>
+      <div class="form-group">
+        <small class="text-muted">It should be a CSV file that has only one column contaning all the coupon codes you
+          want to upload.</small><br>
+        <input type="file" class="form-control-file my-2" id="fileInput" onchange="handleFileUpload()">
+      </div>
+      <div class="text-end">
+        <button type="submit" class="btn btn-primary my-1">Submit</button>
+      </div>
+    </form>
+    <div id="logs">
+      <h2 class="text-center mt-3">Logs</h2>
+      <div class="row p-1 align-items-center" style="background-color: cornsilk;">
+        <div class="col text-start">Batch 1</div>
+        <div class="col text-end">
+          <a class="text-decoration-none" data-bs-toggle="collapse" data-bs-target="#collapseExample" role="button" aria-expanded="false"
+            aria-controls="collapseExample">
+            <span class="text-success">Complete</span>
+          </a>
+        </div>
+      </div>
+      <div class="row p-1">
+        <div class="collapse" id="collapseExample">
+          <div class="card card-body">
+            No errors found.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function handleFileUpload() {
+      const input = document.getElementById("fileInput");
+      const file = input.files[0];
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const csvData = reader.result;
+        const rows = csvData.split("\n");
+        const data = [];
+        const coupons = [];
+
+        for (let i = 0; i < rows.length; i++) {
+          const currentRow = rows[i].trim().split(",");
+          data.push(currentRow);
+        }
+
+        for (var i = 0; i < data.length; i++) {
+          coupons.push(data[i][0]);
+        }
+
+        console.log(coupons);
+        const chunks = chunkArray(coupons);
+        for (let i = 0; i < chunks.length; i++) {
+          testAjax().then(function (res) {
+            console.log(chunks[i]);
+            console.log(res);
+          });
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function testAjax() {
+      return $.ajax({
+        type: "GET",
+        url: "https://catfact.ninja/fact",
+        success: function (data) {
+          // process the response data
+          return data;
+        }
+      });
+    }
+
+    function uploadCoupons(coupons) {
+      $.ajax({
+        type: "POST",
+        url: "https://api.yotpo.com/apps/Zvj29VMst4xIne68SXQ9Ui4FjOfgjcCb0oa7eR4F/coupons/unique",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        data: JSON.stringify({ utoken: "88Tmj4wPOLWFJGGLMwd4nbSfMAw4DNamFxX3kUDg", coupon_action: "map_review", codes: coupons }),
+        success: function (response) {
+          console.log(response);
+        }
+      });
+    }
+
+    function chunkArray(array) {
+      const chunkSize = 10000;
+      let i, j, chunks = [];
+
+      for (i = 0, j = array.length; i < j; i += chunkSize) {
+        chunks.push(array.slice(i, i + chunkSize));
+      }
+
+      return chunks;
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>
