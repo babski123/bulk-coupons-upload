@@ -18,8 +18,7 @@
     <h1 class="text-center mt-3">Coupons Bulk Upload</h1>
     <p class="text-center text-muted mt-3">
       The maximum dynamic coupon upload in Yotpo B2B is 10,000 coupons at a time.
-      This tool will allow you to upload a file that contains more than 10,000 coupons.<br>
-      Goodbye manual repetitive upload, this tool will do it for you.
+      This tool will allow you to upload a file that contains more than 10,000 coupons in one go instead of multiple repetitive uploads.<br>
     </p>
     <form class="mt-2">
       <div class="form-group">
@@ -31,40 +30,54 @@
         <input type="text" class="form-control my-1" id="secret_key">
       </div>
       <div class="form-group">
-        <small class="text-muted">It should be a CSV file that has only one column contaning all the coupon codes you
+        <small class="text-muted">Upload a CSV file that has only one column contaning all the coupon codes you
           want to upload.</small><br>
         <input type="file" class="form-control-file my-2" id="fileInput" onchange="handleFileUpload()">
       </div>
-      <div class="text-end">
-        <button type="submit" class="btn btn-primary my-1">Submit</button>
+      <div id="coupon-data" class="text-start float-start p-3">
+      </div>
+      <div class="text-end float-end">
+        <button type="submit" onclick="location.reload()" class="btn btn-danger my-1">Reset</button>
+        <button type="submit" class="btn btn-primary my-1" id="upload-button">Upload</button>
       </div>
     </form>
-    <div id="logs">
+    <div id="logs" class="mb-5" style="margin-top: 60px;">
       <h2 class="text-center mt-3">Logs</h2>
-      <div class="row p-1 align-items-center" style="background-color: cornsilk;">
-        <div class="col text-start">Batch 1</div>
-        <div class="col text-end">
-          <a class="text-decoration-none" data-bs-toggle="collapse" data-bs-target="#collapseExample" role="button" aria-expanded="false"
-            aria-controls="collapseExample">
-            <span class="text-success">Complete</span>
-          </a>
-        </div>
-      </div>
-      <div class="row p-1">
-        <div class="collapse" id="collapseExample">
-          <div class="card card-body">
-            No errors found.
-          </div>
-        </div>
-      </div>
     </div>
   </div>
   <script>
+    var uploadButton = document.getElementById("upload-button");
+    uploadButton.onclick = function (e) {
+      e.preventDefault();
+      this.setAttribute("disabled", "true");
+      const appKey = document.getElementById("app_key").value.trim();
+      const secretKey = document.getElementById("secret_key").value.trim();
+      var utoken = "";
+      if (!appKey == "" && !secretKey == "") {
+        $.ajax({
+          type: "POST",
+          url: "https://api.yotpo.com/oauth/token",
+          contentType: "application/json; charset=utf-8",
+          dataType: "json",
+          data: JSON.stringify({ client_id: appKey, client_secret: secretKey, grant_type: "client_credentials" }),
+          success: function (response) {
+            uploadButton.removeAttribute("disabled");
+            console.log(response);
+          },
+          error: function(err1,err2,err3) {
+            uploadButton.removeAttribute("disabled");
+            
+          }
+        });
+      }
+    };
+
     function handleFileUpload() {
       const input = document.getElementById("fileInput");
       const file = input.files[0];
 
       const reader = new FileReader();
+      console.log(reader);
       reader.onload = function () {
         const csvData = reader.result;
         const rows = csvData.split("\n");
@@ -81,15 +94,52 @@
         }
 
         console.log(coupons);
+        document.getElementById("coupon-data").innerHTML = "<b>Coupons:</b> " + coupons.length;
         const chunks = chunkArray(coupons);
+        document.getElementById("coupon-data").innerHTML += " <b>Batches:</b> " + chunks.length;
         for (let i = 0; i < chunks.length; i++) {
-          testAjax().then(function (res) {
+          
+          /* testAjax().then(function (res) {
             console.log(chunks[i]);
             console.log(res);
-          });
+            document.getElementById("logs").appendChild(renderLog(i));
+            document.getElementById("logs").appendChild(renderLogDetails(i, res.fact));
+
+          }); */
         }
       };
       reader.readAsText(file);
+    }
+
+    function renderLog(id) {
+      let e = document.createElement("div");
+      let c = "";
+      e.className = "row p-1 align-items-center";
+      e.style.backgroundColor = "cornsilk";
+      c = '<div class="col text-start">Batch ' + (parseInt(id) + 1) + '</div>' +
+        '<div class="col text-end">Status: ' +
+        '<a class="text-decoration-none" data-bs-toggle="collapse" data-bs-target="#collapseExample' + id + '" role="button" aria-expanded="false" aria-controls="collapseExample">' +
+        '<span class="text-success">Complete</span>' +
+        '</a>' +
+        '</div>';
+
+      e.innerHTML = c;
+
+      return e;
+    }
+
+    function renderLogDetails(id, string) {
+      let e = document.createElement("div");
+      e.className = "row p-1";
+      let c = "";
+      c = '<div class="collapse" id="collapseExample' + id + '">' +
+        '<div class="card card-body">' +
+        string +
+        '</div>' +
+        '</div>';
+      e.innerHTML = c;
+
+      return e;
     }
 
     function testAjax() {
@@ -97,7 +147,6 @@
         type: "GET",
         url: "https://catfact.ninja/fact",
         success: function (data) {
-          // process the response data
           return data;
         }
       });
